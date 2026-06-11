@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/types'
-import { storage } from '@/utils/storage'
+import { storage, type RecentLogin } from '@/utils/storage'
 import { generateId } from '@/utils/id'
 
 export const useUserStore = defineStore('user', () => {
   const users = ref<User[]>([])
   const currentUserId = ref<string | null>(null)
   const visitingUserId = ref<string | null>(null)
+  const recentLogins = ref<RecentLogin[]>([])
 
   const currentUser = computed(() => {
     if (!currentUserId.value) return null
@@ -23,9 +24,20 @@ export const useUserStore = defineStore('user', () => {
     return users.value.filter(u => u.isPublic && u.id !== currentUserId.value)
   })
 
+  const recentUsers = computed(() => {
+    return recentLogins.value
+      .map(r => ({
+        user: users.value.find(u => u.id === r.userId) || null,
+        timestamp: r.timestamp
+      }))
+      .filter(r => r.user !== null)
+      .map(r => r.user as User)
+  })
+
   function init() {
     users.value = storage.getUsers()
     currentUserId.value = storage.getCurrentUser()
+    recentLogins.value = storage.getRecentLogins()
     
     if (users.value.length === 0) {
       createDefaultUsers()
@@ -75,6 +87,8 @@ export const useUserStore = defineStore('user', () => {
   function login(userId: string): void {
     currentUserId.value = userId
     storage.setCurrentUser(userId)
+    storage.addRecentLogin(userId)
+    recentLogins.value = storage.getRecentLogins()
   }
 
   function logout(): void {
@@ -109,6 +123,7 @@ export const useUserStore = defineStore('user', () => {
     visitingUserId,
     visitingUser,
     publicUsers,
+    recentUsers,
     init,
     registerUser,
     login,

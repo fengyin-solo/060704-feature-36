@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useUserStore } from '@/stores/user'
 
 const emit = defineEmits<{
   login: [userName: string]
 }>()
 
+const userStore = useUserStore()
 const userName = ref('')
 const isLoading = ref(false)
+
+const hasRecentUsers = computed(() => userStore.recentUsers.length > 0)
 
 function handleSubmit() {
   if (!userName.value.trim()) return
@@ -17,6 +21,15 @@ function handleSubmit() {
     emit('login', userName.value.trim())
     isLoading.value = false
   }, 500)
+}
+
+function handleQuickLogin(userName: string) {
+  isLoading.value = true
+  
+  setTimeout(() => {
+    emit('login', userName)
+    isLoading.value = false
+  }, 300)
 }
 </script>
 
@@ -38,6 +51,42 @@ function handleSubmit() {
           ====================================
         </div>
         
+        <div v-if="hasRecentUsers" class="mb-6">
+          <label class="block font-vt323 text-diary-fresh mb-3 text-lg">
+            > 最近登录
+          </label>
+          <div class="space-y-2">
+            <button
+              v-for="user in userStore.recentUsers"
+              :key="user.id"
+              type="button"
+              @click="handleQuickLogin(user.name)"
+              :disabled="isLoading"
+              class="w-full text-left px-4 py-3 border-2 border-gray-700 rounded hover:border-diary-fresh hover:bg-gray-800/50 transition-all bg-gray-800/30 group"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">👤</span>
+                  <div>
+                    <div class="font-vt323 text-diary-fresh text-lg group-hover:glow-text">
+                      {{ user.name }}
+                    </div>
+                    <div v-if="user.bio" class="text-gray-500 font-vt323 text-xs">
+                      {{ user.bio }}
+                    </div>
+                  </div>
+                </div>
+                <span class="text-diary-fresh font-vt323 opacity-0 group-hover:opacity-100 transition-opacity">
+                  →
+                </span>
+              </div>
+            </button>
+          </div>
+          <div class="ascii-divider text-center my-6">
+            --------------- OR ---------------
+          </div>
+        </div>
+
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <div>
             <label class="block font-vt323 text-diary-fresh mb-2 text-lg">
